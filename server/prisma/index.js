@@ -2,7 +2,7 @@ import { PrismaClient } from "./generated/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import path from 'path'
 
-const url = path.join(process.env.DATABASE_DIR, 'meal.db');
+const url = path.join(process.env.database_dir, 'meal.db');
 
 const adapter = new PrismaLibSql({ url });
 const prisma = new PrismaClient({ adapter });

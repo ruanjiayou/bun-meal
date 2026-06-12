@@ -4,7 +4,7 @@ import { kindsRoutes } from "./routes/kinds";
 import { dishesRoutes } from "./routes/dishes";
 import { recordsRoutes } from "./routes/records";
 
-const PORT = process.env.PORT;
+const PORT = 3366;
 
 const app = new Elysia()
 app.use(cors({
