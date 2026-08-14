@@ -176,7 +176,7 @@ const DayMealSelector = ({ date, onChange, onClose }: { date: string, onChange: 
           // categories={store.kinds}
           date={date}
           onToggleDish={handleToggleDish}
-          onClose={() => { localProxy!.closeDishes() }}
+          onClose={() => { localProxy!.closeDishes();global.setSelectedDate('') }}
         />
       )}
     </Mask>

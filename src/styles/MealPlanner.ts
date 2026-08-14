@@ -38,7 +38,8 @@ export const CalendarDays = styled.div`
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
+  height: 100%;
 
   @media (max-width: 768px) {
     gap: 2px;
@@ -56,7 +57,7 @@ export const CalendarDay = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow: auto;
+  overflow: hidden;
 
   @media (max-width: 768px) {
     gap: 2px;

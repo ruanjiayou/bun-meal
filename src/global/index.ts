@@ -49,6 +49,10 @@ const store = proxy({
   currentDateTime: new Date(),
   today: formatDate(new Date(), 'yyyy-MM-dd'),
   dateRecordsMap: proxyMap(dateRecordsMap),
+  selectedDate: '',
+  setSelectedDate(date: string) {
+    this.selectedDate = date;
+  },
   get months() {
     const curr = formatDate(this.currentDateTime, 'yyyy-MM-dd');
     const prev = formatDate(subMonths(this.currentDateTime, 1), 'yyyy-MM-dd')

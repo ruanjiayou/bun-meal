@@ -34,7 +34,7 @@ const OneDish = ({ item }: { item: IRecord }) => {
   )
 }
 
-const Grids42 = ({ month, today, setSelectedDate }: any) => {
+const Grids42 = ({ month, today }: any) => {
   const globalState = useSnapshot(global)
   const date = new Date(month);
   const monthStart = startOfMonth(date);
@@ -55,23 +55,23 @@ const Grids42 = ({ month, today, setSelectedDate }: any) => {
           className={`${!sameMonth ? outside : ''} ${date === today ? 'today' : ''}`}
           onClick={() => {
             if (sameMonth) {
-              if (!globalState.dateRecordsMap.get(date)) {
+              if (!global.dateRecordsMap.get(date)) {
                 global.setDateRecords(date, [])
               }
-              setSelectedDate(date)
+              global.setSelectedDate(date)
             }
           }}
         >
           <DayNumber>{format(day, 'd')}</DayNumber>
           {/* 午餐区块 */}
-          <MealBlock className="lunch-block">
+          {lunch.length !== 0 && <MealBlock className="lunch-block">
             <MealLabel className='lunch'>午</MealLabel>
             <MealDishes>
               {lunch.map(v => (
                 <OneDish item={v} key={v.id} />
               ))}
             </MealDishes>
-          </MealBlock>
+          </MealBlock>}
           {/* 晚餐区块 */}
           <MealBlock className="dinner-block">
             <MealLabel className='dinner'>晚</MealLabel>
@@ -87,15 +87,14 @@ const Grids42 = ({ month, today, setSelectedDate }: any) => {
   </CalendarDays>
 }
 
-const CacheGrid = memo(({ month, today, setSelectedDate }: any) => {
-  return <Grids42 month={month} today={today} setSelectedDate={setSelectedDate} />
+const CacheGrid = memo(({ month, today }: any) => {
+  return <Grids42 month={month} today={today} />
 }, (prev, next) => {
   return prev.month === next.month
 })
 
 const MealPlanner = () => {
   const globalState = useSnapshot(global)
-  const [selectedDate, setSelectedDate] = useState(null)
   const swiperRef = useRef(null);
   const user = useSnapshot(User)
   useEffect(() => {
@@ -143,7 +142,7 @@ const MealPlanner = () => {
           initialSlide={1} // 默认显示第二个
           modules={[]}
           ref={swiperRef}
-          style={{ width: '100%' }}
+          style={{ width: '100%', height: '100%' }}
           spaceBetween={50}
           slidesPerView={1}
           onTransitionEnd={(evt) => {
@@ -160,16 +159,16 @@ const MealPlanner = () => {
         >
           {globalState.months.map(month => (
             <SwiperSlide key={month} id={month}>
-              <CacheGrid month={month} today={globalState.today} setSelectedDate={setSelectedDate} />
+              <CacheGrid month={month} today={globalState.today} />
             </SwiperSlide>
           ))}
         </Swiper>
       </CalendarGrid>
-      {selectedDate && (
+      {globalState.selectedDate && (
         <DayMealSelector
-          date={selectedDate}
+          date={globalState.selectedDate}
           onChange={onChange}
-          onClose={() => setSelectedDate(null)}
+          onClose={() => global.setSelectedDate('')}
         />
       )}
     </Main>
