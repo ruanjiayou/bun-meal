@@ -15,9 +15,26 @@ export const CalendarGrid = styled.div`
   flex-direction: column;
   gap: 0;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
-  touch-action: 'none';
   position: relative;
+
+  /* 精简模式 + 已选日期：日历区随内容自适应，最高 70%，其余高度留给下方记录列表 */
+  .compact.has-panel & {
+    flex: 0 1 auto;
+    height: auto;
+    max-height: 70%;
+    min-height: 0;
+  }
+
+  .swiper,
+  .swiper-wrapper {
+    height: 100%;
+  }
+  .swiper-slide {
+    height: 100%;
+    overflow: hidden auto;
+  }
 `
 export const Weekdays = styled.div`
   display: grid;
@@ -25,6 +42,12 @@ export const Weekdays = styled.div`
   gap: 0;
   line-height: 18px;
   padding-bottom: 10px;
+  flex-shrink: 0;
+
+  .compact & {
+    line-height: 14px;
+    padding-bottom: 4px;
+  }
 `
 export const Weekday = styled.div`
   text-align: center;
@@ -32,17 +55,48 @@ export const Weekday = styled.div`
   color: #666;
   padding: 8px;
   font-size: 16px;
+
+  .compact & {
+    padding: 2px 0;
+    font-size: 12px;
+  }
 `
 export const CalendarDays = styled.div`
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
   flex: 1;
-  overflow: hidden;
-  height: 100%;
+  min-height: 0;
+  // height: 100%;
+  // overflow-y: auto;
+  // overflow-x: hidden;
+  /* 行高不设上限，最小 50px；行按内容自然撑开，整块区域纵向滚动 */
+  grid-auto-rows: minmax(50px, auto);
+  align-content: start;
+  /* 整个日期区域内部滚动 */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-right: 2px;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
 
   @media (max-width: 768px) {
     gap: 2px;
+  }
+
+  .compact & {
+    padding-bottom: 2px;
+
+    @media (max-width: 768px) {
+      gap: 3px;
+    }
   }
 `
 export const CalendarDay = styled.div`
@@ -58,6 +112,10 @@ export const CalendarDay = styled.div`
   flex-direction: column;
   gap: 4px;
   overflow: hidden;
+  /* 长按不触发选中文字 / 系统菜单 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 
   @media (max-width: 768px) {
     gap: 2px;
@@ -74,6 +132,11 @@ export const CalendarDay = styled.div`
   }
   &.today {
     background-color: lightgoldenrodyellow;
+  }
+  &.selected {
+    border-color: #667eea;
+    background-color: #f2f4ff;
+    box-shadow: inset 0 0 0 1px #667eea;
   }
   &.other-month {
     opacity: 0.4;
@@ -119,12 +182,152 @@ export const MealLabel = styled.div`
   text-align: center;
   flex-shrink: 0;
 
+  &.breakfast {
+    background-color: #2196f3b0;
+  }
   &.lunch {
     background-color: #ff9800b0;
   }
   &.dinner {
-    background-color: #2196f3b0;
+    background-color: #333333b0;
   }
+`
+/* 精简模式：日历格子里只显示有记录的餐次 */
+export const CompactMeals = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-content: flex-start;
+  font-size: 12px;
+
+  @media (max-width: 768px) {
+    gap: 2px;
+    font-size: 10px;
+  }
+`
+/* 精简模式：日历下方的当天记录列表 */
+export const DayPanel = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+`
+export const DayPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0f0f5;
+  flex-shrink: 0;
+`
+export const DayPanelTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+`
+export const DayPanelEdit = styled.button`
+  border: 1px solid #667eea;
+  background: #f2f4ff;
+  color: #667eea;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:active {
+    background: #e6e9ff;
+  }
+`
+export const DayPanelBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  /* 下方列表内部可滚动 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+`
+export const DayRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+`
+export const DayRowLabel = styled.span`
+  flex-shrink: 0;
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 12px;
+
+  &.breakfast {
+    background: #2196f3b0;
+  }
+  &.lunch {
+    background: #ff9800b0;
+  }
+  &.dinner {
+    background: #333333;
+  }
+`
+export const DayRowDishes = styled.div`
+  color: #444;
+  word-break: break-word;
+`
+/* 下方列表：按菜品逐条展示 */
+export const DayDishList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+`
+export const DayDishItem = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #444;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+
+  &::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #c2c8d6;
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+`
+export const DayPanelEmpty = styled.div`
+  color: #999;
+  font-size: 12px;
+  padding: 10px 0;
+  text-align: center;
 `
 export const MealDishes = styled.div`
   display: flex;

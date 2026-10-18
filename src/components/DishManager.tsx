@@ -1,8 +1,10 @@
+import { useRef } from 'react'
 import { useSnapshot } from 'valtio'
-import { Trash2, Plus, PencilLine, X } from 'lucide-react'
+import { Trash2, Plus, PencilLine, X, Loader2 } from 'lucide-react'
 import global, { useLocalProxy, type IDish } from '../global'
-import { createDish, createKind, destryDish, destryKind, updateDish } from '../apis'
+import { createDish, createKind, destryDish, destryKind, updateDish, getDish } from '../apis'
 import { FullWidth, Button, Mask, Modal, ModalFooter, ModalHeader, ModalContent, } from '../styles/common';
+import RichTextEditor from './RichTextEditor'
 
 import {
   Main,
@@ -15,6 +17,9 @@ import {
   DishInfo,
   Operation,
   CategoryLabel,
+  EditField,
+  EditFieldLabel,
+  EditLoading,
 } from '../styles/DishManager'
 
 const DishManager = () => {
@@ -24,6 +29,7 @@ const DishManager = () => {
     newKindId: string;
     newKindTitle: string;
     editDish: Partial<IDish> | null;
+    editLoading: boolean;
     setKV: Function;
   }>({
     newDishTitle: '',
@@ -31,12 +37,41 @@ const DishManager = () => {
     newKindId: '',
     newKindTitle: '',
     editDish: null,
+    editLoading: false,
     setKV(k: string, v: any) {
       //@ts-ignore
       this[k] = v
     }
   })
   const store = useSnapshot(global)
+  // 标记当前编辑请求，避免关闭弹窗后旧请求回来又把弹窗打开
+  const editSeq = useRef(0)
+
+  /** 打开编辑：先用列表里的基础字段占位，再拉取完整详情（含 content） */
+  const openEdit = async (dish: IDish) => {
+    const seq = ++editSeq.current
+    localProxy.setKV('editDish', { id: dish.id, title: dish.title, kind_id: dish.kind_id })
+    localProxy.setKV('editLoading', true)
+    try {
+      const info = await getDish(dish.id)
+      if (seq !== editSeq.current) return
+      localProxy.setKV('editDish', { ...info })
+    } catch (err: any) {
+      if (seq !== editSeq.current) return
+      alert('获取菜品详情失败：' + (err?.message || '请稍后重试'))
+      localProxy.setKV('editDish', null)
+    } finally {
+      if (seq === editSeq.current) {
+        localProxy.setKV('editLoading', false)
+      }
+    }
+  }
+
+  const closeEdit = () => {
+    editSeq.current++
+    localProxy.setKV('editDish', null)
+    localProxy.setKV('editLoading', false)
+  }
 
   const addDish = async () => {
     if (!localState.newDishKindId.trim() || !localState.newDishTitle.trim()) {
@@ -62,13 +97,14 @@ const DishManager = () => {
       return alert('添加失败 ' + result.message)
     }
   }
-  const putDish = async (id: string, title: string) => {
-    const result = await updateDish(id, { title })
+  const putDish = async (id: string, title: string, content: string) => {
+    const result = await updateDish(id, { title, content })
     if (result.success) {
+      // 列表只保留轻量字段，content 不入 store
       global.putDish(id, { title })
-      localProxy.setKV('editDish', null)
+      closeEdit()
     } else {
-
+      return alert('保存失败 ' + result.message)
     }
   }
 
@@ -176,7 +212,7 @@ const DishManager = () => {
           <input
             type="text"
             placeholder="新分类id"
-            value={localState.newKindId}
+            defaultValue={localState.newKindId}
             style={{ flex: 1 }}
             onChange={(e) => {
               localProxy.setKV('newKindId', e.target.value)
@@ -186,7 +222,7 @@ const DishManager = () => {
           <input
             type="text"
             placeholder="新分类名称"
-            value={localState.newKindTitle}
+            defaultValue={localState.newKindTitle}
             style={{ flex: 1 }}
             onChange={(e) => {
               localProxy.setKV('newKindTitle', e.target.value)
@@ -220,7 +256,7 @@ const DishManager = () => {
                   </Button>
                   <Button
                     className="delete"
-                    onClick={() => localProxy.setKV('editDish', dish)}
+                    onClick={() => openEdit(dish)}
                   >
                     <PencilLine size={16} />
                   </Button>
@@ -234,20 +270,50 @@ const DishManager = () => {
         localState.editDish && <Mask>
           <Modal>
             <ModalHeader>
-              <h3>修改</h3>
-              <div onClick={() => { localProxy.setKV('editDish', null) }}>
+              <h3>编辑菜品</h3>
+              <div onClick={closeEdit}>
                 <X size={24} />
               </div>
             </ModalHeader>
             <ModalContent>
-              <input name="edit_dish" className={input_select} style={{ flex: 0, width: '100%' }} defaultValue={localState.editDish?.title} onChange={e => { localProxy.setKV('editDish', { ...localState.editDish, title: e.target.value }) }} />
+              {localState.editLoading ? (
+                <EditLoading>
+                  <Loader2 size={18} className="spin" />
+                  正在获取菜品详情…
+                </EditLoading>
+              ) : (
+                <>
+                  <EditField>
+                    <EditFieldLabel>菜品名称</EditFieldLabel>
+                    {/* 非受控输入：避免中文输入法组合期间被 React 回写 value 造成重复字母 */}
+                    <input
+                      name="edit_dish"
+                      className={input_select}
+                      defaultValue={localState.editDish.title || ''}
+                      onChange={e => { localProxy.setKV('editDish', { ...localState.editDish, title: e.target.value }) }}
+                    />
+                  </EditField>
+                  <EditField>
+                    <EditFieldLabel>菜品内容</EditFieldLabel>
+                    <RichTextEditor
+                      key={localState.editDish.id}
+                      defaultValue={localState.editDish.content || ''}
+                      placeholder="记录做法、配料、口味备注…… 支持加粗、列表、小标题"
+                      onChange={(html) => {
+                        localProxy.setKV('editDish', { ...localState.editDish, content: html })
+                      }}
+                    />
+                  </EditField>
+                </>
+              )}
             </ModalContent>
 
             <ModalFooter>
-              <Button className='close' onClick={() => localProxy.setKV('editDish', null)}>取消</Button>
+              <Button className='close' onClick={closeEdit}>取消</Button>
               <Button className='add' onClick={() => {
+                if (localState.editLoading) return
                 //@ts-ignore
-                putDish(localState.editDish.id, localState.editDish.title)
+                putDish(localState.editDish.id, localState.editDish.title, localState.editDish.content || '')
               }}>确定</Button>
             </ModalFooter>
           </Modal>

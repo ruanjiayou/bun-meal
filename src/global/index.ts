@@ -9,6 +9,7 @@ import { App } from './App'
 export type IDish = {
   id: string;
   title: string;
+  content?: string;
   kind_id: string;
   sn: number;
   repeated?: boolean;
@@ -42,6 +43,8 @@ export function useLocalProxy<T extends object>(initialState: T) {
 const kinds: IKind[] = [];
 const dishes: IDish[] = []
 const dateRecordsMap = new Map<string, IRecord[]>()
+// 视图模式（精简/详细），持久化到 localStorage
+const COMPACT_KEY = 'compact-mode'
 const store = proxy({
   app: App,
   kinds,
@@ -50,8 +53,16 @@ const store = proxy({
   today: formatDate(new Date(), 'yyyy-MM-dd'),
   dateRecordsMap: proxyMap(dateRecordsMap),
   selectedDate: '',
+  compactMode: storage.getValue(COMPACT_KEY) === '1',
   setSelectedDate(date: string) {
     this.selectedDate = date;
+  },
+  setCompactMode(value: boolean) {
+    this.compactMode = value;
+    storage.setValue(COMPACT_KEY, value ? '1' : '0')
+  },
+  toggleCompactMode() {
+    this.setCompactMode(!this.compactMode)
   },
   get months() {
     const curr = formatDate(this.currentDateTime, 'yyyy-MM-dd');

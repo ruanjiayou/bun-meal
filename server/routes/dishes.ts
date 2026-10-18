@@ -16,6 +16,7 @@ export const dishesRoutes = new Elysia({ prefix: "/api/dishes" })
       const list = await db.dish.findMany({
         where,
         orderBy: {},
+        omit: { content: true }
       })
       if (query.with && query.with.includes('kind')) {
         const ids = list.map(v => v.kind_id);

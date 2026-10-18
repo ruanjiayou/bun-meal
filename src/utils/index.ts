@@ -41,3 +41,13 @@ export function keyBy<T extends object>(list: T[], field: keyof T) {
   })
   return map;
 }
+
+/** 富文本 HTML 转纯文本预览 */
+export function htmlToText(html?: string) {
+  if (!html) return '';
+  if (typeof document === 'undefined') return html.replace(/<[^>]+>/g, '');
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  div.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  return (div.textContent || '').replace(/\s+\n/g, '\n').trim();
+}

@@ -21,23 +21,24 @@ import {
 } from '../styles/DayMealSelector'
 import type { MouseEventHandler } from 'react'
 
+/** 早 / 中 / 晚 三餐配置 */
+const MEALS = [
+  { type: 'breakfast', title: '🌅 早餐' },
+  { type: 'lunch', title: '🍴 午餐' },
+  { type: 'dinner', title: '🍽️ 晚餐' },
+]
+
+const mealTitle = (type: string) => MEALS.find(m => m.type === type)?.title || ''
+
 const DayMealSelector = ({ date, onChange, onClose }: { date: string, onChange: Function, onClose: MouseEventHandler<HTMLDivElement> }) => {
   const store = useSnapshot(global)
 
   const todayDishes = store.getDateRecords(date) || []
-  const lunchDishes = todayDishes.filter(d => d.type === 'lunch')
-  const dinnerDishes = todayDishes.filter(d => d.type === 'dinner')
 
   const [localState, localProxy] = useLocalProxy({
     showDishList: false,
     type: '',
     date,
-    // toggleDishRepeat(id) {
-    //   const item = this.todayDishes.find(d => d.id === id)
-    //   if (item) {
-    //     item.can_repeated = !item.can_repeated
-    //   }
-    // },
     openDishes(type: string) {
       this.type = type
       this.showDishList = true;
@@ -56,18 +57,71 @@ const DayMealSelector = ({ date, onChange, onClose }: { date: string, onChange: 
   const handleToggleDishRepeat = (id: String) => {
     // localProxy.toggleDishRepeat(id)
   }
+
+  // 只在当前餐次（type）内判断与增删，避免午餐选了晚餐就选不了
   const handleToggleDish = async (dish: IDish) => {
-    const record = todayDishes.find(d => d.dish_id === dish.id);
+    const type = localState.type
+    const records = (global.getDateRecords(date) || []).filter(d => d.type === type)
+    const record = records.find(d => d.dish_id === dish.id);
     if (record) {
       global.removeDateRecord(record)
       destryRecord(record.id)
     } else {
       const id = v7()
-      const data = { id, dish_id: dish.id, date, type: localState!.type, can_repeated: 0, sn: 1, time: new Date() }
+      const data = { id, dish_id: dish.id, date, type, can_repeated: 0, sn: 1, time: new Date() }
       global.addDateRecord({ ...data, dish })
       createRecord(data)
     }
   }
+
+  const renderSection = (type: string, title: string) => {
+    const dishes = todayDishes.filter(d => d.type === type)
+    return (
+      <MealSection key={type}>
+        <MealTitle>{title}</MealTitle>
+        <SelectedDishesList>
+          {dishes.length > 0 ? (
+            dishes.map(dish => {
+              const key = `${type}_${dish.id}`
+              return (
+                <DishTagWrapper key={key} className={`${dish.repeated ? 'repeated' : ''}`}>
+                  <DishTagContent>
+                    {dish.dish?.title}
+                  </DishTagContent>
+                  <DishTagActions>
+                    <RepeatCheck
+                      className={`${dish.can_repeated ? 'enabled' : 'disabled'}`}
+                      onClick={() => handleToggleDishRepeat(dish.id)}
+                      title={dish.can_repeated ? '不参与重复判断' : '参与重复判断'}
+                    >
+                      {dish.can_repeated ? <Eye size={12} /> : <EyeOff size={12} />}
+                    </RepeatCheck>
+                    <Button
+                      className='delete'
+                      onClick={() => handleRemoveDish(dish)}
+                      title="删除菜品"
+                    >
+                      ×
+                    </Button>
+                  </DishTagActions>
+                </DishTagWrapper>
+              )
+            })
+          ) : (
+            <EmptyText>未选择菜品</EmptyText>
+          )}
+        </SelectedDishesList>
+        <Button className='add'
+          onClick={() => {
+            localProxy!.openDishes(type);
+          }}
+        >
+          <Plus size={16} /> 添加菜品
+        </Button>
+      </MealSection>
+    )
+  }
+
   return (
     <Mask onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
@@ -79,104 +133,20 @@ const DayMealSelector = ({ date, onChange, onClose }: { date: string, onChange: 
         </ModalHeader>
 
         <ModalContent>
-          {/* 午餐区块 */}
-          <MealSection style={{ marginBottom: 20 }}>
-            <MealTitle>🍴 午餐</MealTitle>
-            <SelectedDishesList>
-              {lunchDishes.length > 0 ? (
-                lunchDishes.map(dish => {
-                  const key = `lunch_${dish.id}`
-                  return (
-                    <DishTagWrapper key={key} className={`${dish.repeated ? 'repeated' : ''}`}>
-                      <DishTagContent>
-                        {dish.dish?.title}
-                      </DishTagContent>
-                      <DishTagActions>
-                        <RepeatCheck
-                          className={`${dish.can_repeated ? 'enabled' : 'disabled'}`}
-                          onClick={() => {
-                            handleToggleDishRepeat(dish.id)
-                          }}
-                          title={dish.can_repeated ? '不参与重复判断' : '参与重复判断'}
-                        >
-                          {dish.can_repeated ? <Eye size={12} /> : <EyeOff size={12} />}
-                        </RepeatCheck>
-                        <Button
-                          className='delete'
-                          onClick={() => handleRemoveDish(dish)}
-                          title="删除菜品"
-                        >
-                          ×
-                        </Button>
-                      </DishTagActions>
-                    </DishTagWrapper>
-                  )
-                })
-              ) : (
-                <EmptyText>未选择菜品</EmptyText>
-              )}
-            </SelectedDishesList>
-            <Button className='add'
-              onClick={() => {
-                localProxy!.openDishes('lunch');
-              }}
-            >
-              <Plus size={16} /> 添加菜品
-            </Button>
-          </MealSection>
-
-          {/* 晚餐区块 */}
-          <MealSection>
-            <MealTitle>🍽️ 晚餐</MealTitle>
-            <SelectedDishesList>
-              {dinnerDishes.length > 0 ? (
-                dinnerDishes.map(dish => {
-                  const key = `dinner_${dish.id}`
-                  return (
-                    <DishTagWrapper key={key} className={`${dish.repeated ? 'repeated' : ''}`}>
-                      <DishTagContent>
-                        {dish.dish?.title}
-                      </DishTagContent>
-                      <DishTagActions>
-                        <RepeatCheck
-                          className={`${dish.can_repeated ? 'enabled' : 'disabled'}`}
-                          onClick={() => handleToggleDishRepeat(dish.id)}
-                          title={dish.can_repeated ? '不参与重复判断' : '参与重复判断'}
-                        >
-                          {dish.can_repeated ? <Eye size={12} /> : <EyeOff size={12} />}
-                        </RepeatCheck>
-                        <Button className='delete'
-                          onClick={() => handleRemoveDish(dish)}
-                          title="删除菜品"
-                        >
-                          ×
-                        </Button>
-                      </DishTagActions>
-                    </DishTagWrapper>
-                  )
-                })
-              ) : (
-                <EmptyText>未选择菜品</EmptyText>
-              )}
-            </SelectedDishesList>
-            <Button
-              className='add'
-              onClick={() => {
-                localProxy!.openDishes('dinner');
-              }}
-            >
-              <Plus size={16} /> 添加菜品
-            </Button>
-          </MealSection>
+          {MEALS.map((meal, idx) => (
+            <div key={meal.type} style={idx < MEALS.length - 1 ? { marginBottom: 20 } : undefined}>
+              {renderSection(meal.type, meal.title)}
+            </div>
+          ))}
         </ModalContent>
       </Modal>
       {/* 菜品选择弹框 */}
       {localState!.showDishList && (
         <DishSelectorOverlay
-          // categories={store.kinds}
           date={date}
+          type={localState.type}
           onToggleDish={handleToggleDish}
-          onClose={() => { localProxy!.closeDishes();global.setSelectedDate('') }}
+          onClose={() => { localProxy!.closeDishes(); global.setSelectedDate('') }}
         />
       )}
     </Mask>
@@ -184,9 +154,9 @@ const DayMealSelector = ({ date, onChange, onClose }: { date: string, onChange: 
 }
 
 // 菜品选择组件
-const DishSelectorOverlay = ({ date, onToggleDish, onClose }: any) => {
+const DishSelectorOverlay = ({ date, type, onToggleDish, onClose }: any) => {
   const store = useSnapshot(global)
-  const selectedDishes = store.getDateRecords(date)
+  const selectedDishes = store.getDateRecords(date) || []
   const dishsByCategory = store.kinds.map(kind => {
     return {
       kind,
@@ -197,7 +167,7 @@ const DishSelectorOverlay = ({ date, onToggleDish, onClose }: any) => {
     <Mask onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <h3>选择菜品 </h3>
+          <h3>选择菜品 · {mealTitle(type).replace(/^\S+\s*/, '')}</h3>
           <div onClick={onClose}>
             <X size={24} />
           </div>
@@ -210,7 +180,8 @@ const DishSelectorOverlay = ({ date, onToggleDish, onClose }: any) => {
               <CategoryTitle>{kind.title}</CategoryTitle>
               <DishesGrid>
                 {dishes.map(dish => {
-                  const isSelected = selectedDishes!.findIndex(d => d.dish_id === dish.id) !== -1
+                  // 只把「当前餐次」已选中的菜品标记为已选
+                  const isSelected = selectedDishes.some(d => d.dish_id === dish.id && d.type === type)
                   const isRepeated = dish.repeated
                   return (
                     <DishCell

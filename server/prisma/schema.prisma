@@ -21,6 +21,7 @@ model Kind {
 model Dish {
   id      String @id @default(uuid())
   title   String
+  content   String @default("")
   kind_id String
   sn      Int    @default(1)
 }

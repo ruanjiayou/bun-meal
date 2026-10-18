@@ -19,6 +19,7 @@ body,
 #root {
   height: 100dvh;
   width: 100%;
+  min-height: 100vh;
   overscroll-behavior: none;
   overflow: hidden;
 }
@@ -30,4 +31,18 @@ code {
 
 input {
   min-width: 0;
+}
+
+/* 当屏幕宽度大于 768px 时，应用以下样式 */
+@media (min-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/* 当屏幕宽度小于 768px 时，应用以下样式，这通常适用于手机 */
+@media (max-width: 767px) {
+  html {
+    font-size: 12px;
+  }
 }

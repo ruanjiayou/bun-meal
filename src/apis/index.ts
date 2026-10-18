@@ -30,6 +30,14 @@ export async function getDishes(query = {}) {
 export async function createDish(data: Partial<IDish>) {
   return await shttp.post('/api/dishes', data)
 }
+/** 获取单个菜品完整字段（含 content 富文本） */
+export async function getDish(id: string) {
+  const result = await shttp.get<IDish>(`/api/dishes/${id}`)
+  if (result.success && result.data.info) {
+    return result.data.info
+  }
+  throw new Error(result.message || '菜品不存在')
+}
 export async function destryDish(id: string) {
   return await shttp.delete(`/api/dishes/${id}`);
 }

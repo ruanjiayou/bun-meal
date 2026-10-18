@@ -107,6 +107,7 @@ export const DishCard = styled.div`
 `
 export const DishInfo = styled.div`
   flex: 1;
+  min-width: 0;
 
   & h4 {
     font-size: 14px;
@@ -114,6 +115,43 @@ export const DishInfo = styled.div`
     margin-bottom: 4px;
     font-weight: 600;
   }
+`
+export const EditLoading = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+  font-size: 13px;
+  color: #8a8f9c;
+
+  & .spin {
+    animation: dish-edit-spin 0.9s linear infinite;
+  }
+
+  @keyframes dish-edit-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`
+export const EditField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  & + & {
+    margin-top: 14px;
+  }
+`
+export const EditFieldLabel = styled.label`
+  font-size: 12px;
+  font-weight: 600;
+  color: #7b8199;
+  letter-spacing: 0.02em;
 `
 export const Operation = styled.div`
   height: 100%;
